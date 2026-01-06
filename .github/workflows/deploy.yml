@@ -21,7 +21,7 @@ jobs:
           key: ${{ secrets.KAKAO_KEY }}
 
           script: |
-            cd cd /home/ubuntu/frontend_react
+            cd /home/ubuntu/kakaoreact
             git pull origin main
             npm install
             npm run build
