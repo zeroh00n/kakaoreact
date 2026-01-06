@@ -8,6 +8,43 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+ 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          
+      - name: Install dependencies
+        run: npm ci
+
+      - name: React 파일 빌드
+        run: npm run build
+        # 여기까지 실행하면 GitHub Runner 안에 'dist' 폴더가 생성됩니다.
+
+      # -------------------------------------------------------
+      # [추가] 빌드된 dist 폴더를 서버로 복사 (scp)
+      # -------------------------------------------------------
+      - name: Copy files via Bastion
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          proxy_host: ${{ secrets.BASTION_HOST }}
+          proxy_username: ${{ secrets.USERNAME }}
+          proxy_key: ${{ secrets.KAKAO_KEY }}
+          
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KAKAO_KEY }}
+          
+          source: "dist/*"
+          target: "/home/ubuntu"
+          # strip_components: 1 # dist 폴더 껍데기를 벗기고 내용물만 보낼 때 옵션 (필요시 사용)
+
+      # -------------------------------------------------------
+      # [수정] 파일 이동 및 재시작 (git pull 불필요)
+      # -------------------------------------------------------
       - name: Deploy via Bastion
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -15,20 +52,19 @@ jobs:
           proxy_username: ${{ secrets.USERNAME }}
           proxy_key: ${{ secrets.KAKAO_KEY }}
 
-          # 2. 목적지 (Private Server) 설정
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KAKAO_KEY }}
 
           script: |
-            cd /home/ubuntu/kakaoreact
-            git pull origin main
-            npm install
-            npm run build
-            sudo mv dist /usr/share/nginx/html
-            cd /usr/share/nginx/html
-            sudo rm -rf assets/ index.html
-            cd dist
-            sudo mv assets/ index.html ..
+            # 이미 scp로 최신 빌드 파일이 /home/ubuntu/kakaoreact/dist 에 와 있습니다.
+            
+            # 1. Nginx 경로의 기존 파일 삭제 (안전을 위해 백업 권장하지만 여기선 삭제)
+            sudo rm -rf /usr/share/nginx/html/*
+            
+            # 2. 전송받은 빌드 파일을 Nginx 경로로 이동
+            sudo cp -r /home/ubuntu/dist/* /usr/share/nginx/html/
+            
+            # 3. Nginx 재시작
             sudo systemctl restart nginx
             echo "Deployment completed successfully"
