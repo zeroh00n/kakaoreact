@@ -50,7 +50,7 @@ jobs:
         with:
           proxy_host: ${{ secrets.BASTION_HOST }}
           proxy_username: ${{ secrets.USERNAME }}
-          proxy_key: ${{ secrets.KAKAO_KEY }}
+          proxy_key: ${{ secrets.KAKAO2_KEY }}
 
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
